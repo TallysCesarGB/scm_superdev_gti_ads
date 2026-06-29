@@ -33,17 +33,17 @@ O **SCM Suite** é um sistema web fullstack construído em **Django** que simula
 ### Passo a passo
 
 ```bash
-# 1. Extrair o projeto
-tar -xzf scm_django_project.tar.gz
-cd scm_project
+# 1. Clone o projeto
+SSH: git@github.com:TallysCesarGB/scm_superdev_gti_ads.git
+HTTPS: https://github.com/TallysCesarGB/scm_superdev_gti_ads.git
 
 # 2. Criar e ativar ambiente virtual
 python3 -m venv venv
 source venv/bin/activate        # Linux/Mac
-# venv\Scripts\activate         # Windows
+venv\Scripts\activate         # Windows
 
 # 3. Instalar dependências
-pip install django openpyxl
+pip install django pandas openpyxl plotly
 
 # 4. Garantir que a planilha está no lugar certo
 # O arquivo deve estar em: scm_project/scm/dados_vendas_supermercado_v2.xlsx
