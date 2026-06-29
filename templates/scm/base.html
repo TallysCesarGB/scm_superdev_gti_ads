@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}SCM Suite{% endblock %} | SuperMercado Inteligente</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #1a3a5c;
+  --primary-light: #2563a8;
+  --accent: #16a34a;
+  --accent2: #f59e0b;
+  --danger: #dc2626;
+  --bg: #f0f4f8;
+  --card: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --sidebar-w: 240px;
+}
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-w); background: var(--primary); color: #fff;
+  display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+}
+.sidebar-brand { padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.sidebar-brand h1 { font-size: 16px; font-weight: 700; color: #fff; line-height: 1.2; }
+.sidebar-brand span { font-size: 11px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: 1px; }
+.sidebar-logo { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px; }
+.nav-section { padding: 16px 8px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,.4); }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: rgba(255,255,255,.75); text-decoration: none; border-radius: 6px; margin: 2px 8px; font-size: 14px; transition: all .2s; }
+.nav-item:hover, .nav-item.active { background: rgba(255,255,255,.12); color: #fff; }
+.nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+.sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12px; color: rgba(255,255,255,.5); }
+
+/* MAIN */
+.main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+.topbar-title { font-size: 18px; font-weight: 600; color: var(--text); }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.badge-live { background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+.user-pill { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+.user-avatar { width: 32px; height: 32px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; }
+.content { padding: 28px; flex: 1; }
+
+/* CARDS */
+.card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.card-body { padding: 20px; }
+
+/* KPI CARDS */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.kpi-card.accent-green { border-left: 4px solid var(--accent); }
+.kpi-card.accent-blue { border-left: 4px solid var(--primary-light); }
+.kpi-card.accent-yellow { border-left: 4px solid var(--accent2); }
+.kpi-card.accent-red { border-left: 4px solid var(--danger); }
+.kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.kpi-value { font-size: 28px; font-weight: 700; color: var(--text); }
+.kpi-sub { font-size: 12px; color: var(--text-muted); }
+
+/* GRID LAYOUTS */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+
+/* TABLES */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); border-bottom: 2px solid var(--border); background: #f8fafc; }
+td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8fafc; }
+
+/* BADGES */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-A { background: #dcfce7; color: #15803d; }
+.badge-B { background: #fef9c3; color: #854d0e; }
+.badge-C { background: #fee2e2; color: #991b1b; }
+.badge-success { background: #dcfce7; color: #15803d; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-info { background: #dbeafe; color: #1e40af; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge-secondary { background: #f1f5f9; color: #475569; }
+
+/* STATUS BADGES */
+.status-GERADO { background: #f1f5f9; color: #475569; }
+.status-ENVIADO { background: #dbeafe; color: #1e40af; }
+.status-CONFIRMADO { background: #e0e7ff; color: #4338ca; }
+.status-EM_TRANSITO { background: #fef3c7; color: #92400e; }
+.status-ENTREGUE { background: #dcfce7; color: #15803d; }
+.status-CANCELADO { background: #fee2e2; color: #991b1b; }
+
+/* ALERTS */
+.alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+.alert-warning { background: #fef3c7; border: 1px solid #fbbf24; color: #92400e; }
+.alert-success { background: #dcfce7; border: 1px solid #4ade80; color: #15803d; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; transition: all .2s; }
+.btn-primary { background: var(--primary-light); color: #fff; }
+.btn-primary:hover { background: var(--primary); }
+.btn-success { background: var(--accent); color: #fff; }
+.btn-success:hover { background: #15803d; }
+.btn-secondary { background: var(--border); color: var(--text); }
+.btn-secondary:hover { background: #cbd5e1; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-outline { background: transparent; border: 1px solid var(--primary-light); color: var(--primary-light); }
+
+/* CHARTS */
+.chart-container { position: relative; }
+
+/* PROGRESS */
+.progress-bar-wrap { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+
+/* MISC */
+.text-muted { color: var(--text-muted); }
+.text-sm { font-size: 12px; }
+.fw-bold { font-weight: 700; }
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.gap-8 { gap: 8px; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+
+/* LOADING SPINNER */
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* IA PANEL */
+.ia-result { background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 20px; display: none; }
+.ia-result h3 { color: #15803d; font-size: 15px; margin-bottom: 12px; }
+.ia-qty { font-size: 36px; font-weight: 800; color: var(--primary); }
+.ia-text { font-size: 13px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+.edi-preview { background: #1e293b; color: #7dd3fc; font-family: monospace; font-size: 11px; padding: 14px; border-radius: 8px; overflow-x: auto; white-space: pre; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+/* SCROLL */
+::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">🛒</div>
+    <h1>SCM Suite</h1>
+    <span>Gestão de Suprimentos</span>
+  </div>
+  <div class="nav-section">Visão Geral</div>
+  <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+    <span class="icon">📊</span> Dashboard
+  </a>
+  <div class="nav-section">Operações</div>
+  <a href="{% url 'produtos' %}" class="nav-item {% if request.resolver_match.url_name == 'produtos' %}active{% endif %}">
+    <span class="icon">📦</span> Produtos
+  </a>
+  <a href="{% url 'fornecedores' %}" class="nav-item {% if request.resolver_match.url_name == 'fornecedores' %}active{% endif %}">
+    <span class="icon">🏭</span> Fornecedores
+  </a>
+  <a href="{% url 'pedidos_edi' %}" class="nav-item {% if request.resolver_match.url_name == 'pedidos_edi' %}active{% endif %}">
+    <span class="icon">📋</span> Pedidos EDI
+  </a>
+  <div class="nav-section">Inteligência</div>
+  <a href="{% url 'ia_recomendacao' %}" class="nav-item {% if request.resolver_match.url_name == 'ia_recomendacao' %}active{% endif %}">
+    <span class="icon">🤖</span> IA Recomendação
+  </a>
+  <div class="sidebar-footer">
+    <div>IFRN — Pau dos Ferros</div>
+    <div>ADS — Aplicações Corporativas</div>
+    <div style="margin-top:4px; color:rgba(255,255,255,.3)">Prof. Sergio Neto</div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+    <div class="topbar-right">
+      <span class="badge-live">● AO VIVO</span>
+      <div class="user-pill">
+        <div class="user-avatar">D</div>
+        Diretoria
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+</body>
+</html>

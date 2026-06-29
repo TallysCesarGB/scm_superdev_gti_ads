@@ -1,0 +1,68 @@
+{% extends 'scm/base.html' %}
+{% block title %}Pedido {{ pedido.numero_pedido }}{% endblock %}
+{% block page_title %}Pedido {{ pedido.numero_pedido }}{% endblock %}
+{% block content %}
+<div style="display:flex; gap:6px; margin-bottom:20px; align-items:center;">
+  <a href="{% url 'pedidos_edi' %}" class="btn btn-secondary btn-sm">← Voltar</a>
+  <span class="badge status-{{ pedido.status }}" style="font-size:13px; padding:4px 12px;">{{ pedido.get_status_display }}</span>
+</div>
+
+<div class="grid-2" style="gap:20px; align-items:start;">
+  <div>
+    <div class="card mb-4" style="margin-bottom:16px;">
+      <div class="card-header"><span class="card-title">📦 Informações do Pedido</span></div>
+      <div class="card-body">
+        <table style="border:none;">
+          <tbody>
+            <tr><td style="border:none; font-weight:600; color:var(--text-muted); width:150px;">Número</td><td style="border:none;">{{ pedido.numero_pedido }}</td></tr>
+            <tr><td style="border:none; font-weight:600; color:var(--text-muted);">Fornecedor</td><td style="border:none;">{{ pedido.fornecedor.nome }}</td></tr>
+            <tr><td style="border:none; font-weight:600; color:var(--text-muted);">Criado em</td><td style="border:none;">{{ pedido.data_criacao|date:"d/m/Y H:i" }}</td></tr>
+            <tr><td style="border:none; font-weight:600; color:var(--text-muted);">Envio EDI</td><td style="border:none;">{{ pedido.data_envio_edi|date:"d/m/Y H:i"|default:"—" }}</td></tr>
+            <tr><td style="border:none; font-weight:600; color:var(--text-muted);">Entrega Prev.</td><td style="border:none;">{{ pedido.data_previsao_entrega|date:"d/m/Y"|default:"—" }}</td></tr>
+            <tr><td style="border:none; font-weight:600; color:var(--text-muted);">Valor Total</td><td style="border:none;"><strong>R$ {{ pedido.valor_total|floatformat:2 }}</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card mb-4" style="margin-bottom:16px;">
+      <div class="card-header"><span class="card-title">🛒 Itens do Pedido</span></div>
+      <div class="card-body" style="padding:0;">
+        <table>
+          <thead><tr><th>Produto</th><th>Qtd IA</th><th>Qtd Pedida</th><th>Preço Unit.</th><th>Subtotal</th></tr></thead>
+          <tbody>
+          {% for item in pedido.itens.all %}
+          <tr>
+            <td><strong>{{ item.produto.nome }}</strong><br><span class="text-sm text-muted">{{ item.produto.sku }}</span></td>
+            <td>{{ item.quantidade_sugerida_ia|floatformat:0 }}</td>
+            <td><strong>{{ item.quantidade_pedida|floatformat:0 }}</strong></td>
+            <td>R$ {{ item.preco_unitario|floatformat:2 }}</td>
+            <td><strong>R$ {{ item.subtotal|floatformat:2 }}</strong></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if pedido.ia_justificativa %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">🤖 Justificativa da IA</span></div>
+      <div class="card-body">
+        <div style="font-size:13px; line-height:1.7; white-space:pre-wrap; color:var(--text);">{{ pedido.ia_justificativa }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">📡 Mensagem EDI (X12 850)</span></div>
+    <div class="card-body">
+      <div class="edi-preview" style="max-height:600px; overflow-y:auto;">{{ pedido.mensagem_edi }}</div>
+      <div style="margin-top:12px; font-size:12px; color:var(--text-muted);">
+        Formato: ANSI ASC X12 — Transação 850 (Purchase Order) | Protocolo: AS2 simulado
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

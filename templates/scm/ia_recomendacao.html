@@ -1,0 +1,191 @@
+{% extends 'scm/base.html' %}
+{% block title %}IA Recomendação{% endblock %}
+{% block page_title %}🤖 Recomendação Inteligente de Compras (IA + SCM){% endblock %}
+{% block content %}
+
+<div class="alert alert-success mb-4">
+  <strong>🤖 Powered by Claude AI (Anthropic)</strong> — Este módulo utiliza Inteligência Artificial para analisar o histórico de vendas e recomendar volumes de compra otimizados, considerando estoque de segurança, sazonalidade e contexto informado.
+</div>
+
+<div class="grid-2" style="gap:24px; align-items:start;">
+  <!-- Painel de entrada -->
+  <div>
+    <div class="card mb-4" style="margin-bottom:20px;">
+      <div class="card-header"><span class="card-title">📋 Consultar IA para Reposição</span></div>
+      <div class="card-body">
+        <div style="margin-bottom:16px;">
+          <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">Produto (SKU)</label>
+          <select id="selectProduto" style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; color:var(--text);">
+            <option value="">Selecione um produto...</option>
+            {% for p in produtos %}
+            <option value="{{ p.sku }}" data-nome="{{ p.nome }}" data-estoque="{{ p.estoque_atual }}" data-preco="{{ p.preco_unitario }}" data-cat="{{ p.categoria.nome }}">
+              [{{ p.sku }}] {{ p.nome }} — Estoque: {{ p.estoque_atual|floatformat:0 }}un
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div id="produtoInfo" style="display:none; background:#f8fafc; border-radius:8px; padding:12px; margin-bottom:16px; font-size:13px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div><span class="text-muted">Categoria:</span> <strong id="pi-cat"></strong></div>
+            <div><span class="text-muted">Estoque atual:</span> <strong id="pi-estoque"></strong> un</div>
+            <div><span class="text-muted">Preço unit.:</span> <strong id="pi-preco"></strong></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">Contexto Adicional <span class="text-muted">(opcional)</span></label>
+          <textarea id="contextoExtra" rows="3" placeholder="Ex: Feriado de Páscoa na próxima semana; promoção do concorrente com 20% de desconto; previsão de chuva intensa..." style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; resize:vertical;"></textarea>
+        </div>
+
+        <button id="btnConsultar" class="btn btn-primary" style="width:100%; justify-content:center;" onclick="consultarIA()">
+          🤖 Consultar Inteligência Artificial
+        </button>
+      </div>
+    </div>
+
+    <!-- Resultado IA -->
+    <div id="iaResult" class="ia-result">
+      <h3>✅ Recomendação da IA</h3>
+      <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:12px;">
+        <div class="ia-qty" id="iaQty">—</div>
+        <div class="text-muted">unidades recomendadas</div>
+      </div>
+      <div class="ia-text" id="iaText"></div>
+
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid #bbf7d0; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-success" onclick="gerarPedidoEDI()">📤 Gerar Pedido EDI</button>
+        <button class="btn btn-secondary" onclick="novaConsulta()">🔄 Nova Consulta</button>
+      </div>
+    </div>
+
+    <!-- EDI Gerado -->
+    <div id="ediResult" style="display:none;" class="card mt-4">
+      <div class="card-header"><span class="card-title">📡 Pedido EDI Gerado e Enviado</span></div>
+      <div class="card-body">
+        <div id="ediInfo" style="font-size:13px; margin-bottom:12px;"></div>
+        <div class="edi-preview" id="ediPreview"></div>
+        <div style="margin-top:12px;">
+          <a id="ediLink" href="#" class="btn btn-outline btn-sm">Ver Pedido Completo →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Histórico de Recomendações -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">📜 Histórico de Recomendações IA</span></div>
+    <div class="card-body" style="padding:0; max-height:700px; overflow-y:auto;">
+      {% if recomendacoes_recentes %}
+      <table>
+        <thead><tr><th>Produto</th><th>Qtd</th><th>Data</th></tr></thead>
+        <tbody>
+        {% for r in recomendacoes_recentes %}
+        <tr>
+          <td>
+            <strong>{{ r.produto.nome|truncatechars:28 }}</strong><br>
+            <span class="text-sm text-muted">{{ r.produto.sku }}</span>
+          </td>
+          <td><strong>{{ r.quantidade_recomendada|floatformat:0 }}</strong> un</td>
+          <td><span class="text-sm text-muted">{{ r.data_geracao|date:"d/m H:i" }}</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <div class="icon">🤖</div>
+        <div>Nenhuma recomendação gerada ainda.<br>Selecione um produto acima e consulte a IA!</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+let currentRecomendacaoId = null;
+
+document.getElementById('selectProduto').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  const info = document.getElementById('produtoInfo');
+  if (this.value) {
+    document.getElementById('pi-cat').textContent = opt.dataset.cat;
+    document.getElementById('pi-estoque').textContent = parseFloat(opt.dataset.estoque).toFixed(0);
+    document.getElementById('pi-preco').textContent = 'R$ ' + parseFloat(opt.dataset.preco).toFixed(2);
+    info.style.display = 'block';
+  } else {
+    info.style.display = 'none';
+  }
+});
+
+async function consultarIA() {
+  const sku = document.getElementById('selectProduto').value;
+  const contexto = document.getElementById('contextoExtra').value;
+  if (!sku) { alert('Selecione um produto!'); return; }
+
+  const btn = document.getElementById('btnConsultar');
+  btn.innerHTML = '<span class="spinner"></span> Consultando IA...';
+  btn.disabled = true;
+  document.getElementById('iaResult').style.display = 'none';
+  document.getElementById('ediResult').style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/recomendar/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      body: JSON.stringify({ sku, contexto })
+    });
+    const data = await resp.json();
+    if (data.error) { alert('Erro: ' + data.error); return; }
+
+    currentRecomendacaoId = data.recomendacao_id;
+    document.getElementById('iaQty').textContent = data.quantidade_recomendada;
+    document.getElementById('iaText').textContent = data.resposta_ia;
+    document.getElementById('iaResult').style.display = 'block';
+    document.getElementById('iaResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch(e) {
+    alert('Erro ao consultar IA: ' + e.message);
+  } finally {
+    btn.innerHTML = '🤖 Consultar Inteligência Artificial';
+    btn.disabled = false;
+  }
+}
+
+async function gerarPedidoEDI() {
+  if (!currentRecomendacaoId) return;
+  const resp = await fetch('/api/gerar-pedido/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ recomendacao_id: currentRecomendacaoId })
+  });
+  const data = await resp.json();
+  if (data.error) { alert(data.error); return; }
+
+  document.getElementById('ediInfo').innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+      <div>📋 <strong>Pedido:</strong> ${data.numero_pedido}</div>
+      <div>📊 <strong>Status:</strong> <span class="badge badge-info">${data.status}</span></div>
+      <div>💰 <strong>Valor:</strong> R$ ${parseFloat(data.valor_total).toFixed(2)}</div>
+      <div>📅 <strong>Previsão:</strong> ${data.data_entrega}</div>
+    </div>`;
+  document.getElementById('ediPreview').textContent = data.edi_preview;
+  document.getElementById('ediLink').href = '/pedidos/';
+  document.getElementById('ediResult').style.display = 'block';
+  document.getElementById('ediResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function novaConsulta() {
+  document.getElementById('iaResult').style.display = 'none';
+  document.getElementById('ediResult').style.display = 'none';
+  document.getElementById('selectProduto').value = '';
+  document.getElementById('contextoExtra').value = '';
+  document.getElementById('produtoInfo').style.display = 'none';
+  currentRecomendacaoId = null;
+}
+
+function getCookie(name) {
+  const v = document.cookie.split('; ').find(r => r.startsWith(name + '='));
+  return v ? v.split('=')[1] : '';
+}
+</script>
+{% endblock %}

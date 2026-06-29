@@ -1,0 +1,52 @@
+{% extends 'scm/base.html' %}
+{% block title %}Pedidos EDI{% endblock %}
+{% block page_title %}📋 Central de Pedidos EDI{% endblock %}
+{% block content %}
+
+<div class="kpi-grid" style="grid-template-columns: repeat(5,1fr); margin-bottom:20px;">
+  <div class="kpi-card accent-blue"><div class="kpi-label">Total Pedidos</div><div class="kpi-value">{{ stats.total }}</div></div>
+  <div class="kpi-card accent-yellow"><div class="kpi-label">Pendentes</div><div class="kpi-value">{{ stats.pendentes }}</div></div>
+  <div class="kpi-card accent-yellow"><div class="kpi-label">Em Trânsito</div><div class="kpi-value">{{ stats.em_transito }}</div></div>
+  <div class="kpi-card accent-green"><div class="kpi-label">Entregues</div><div class="kpi-value">{{ stats.entregues }}</div></div>
+  <div class="kpi-card accent-green"><div class="kpi-label">Valor Total</div><div class="kpi-value" style="font-size:18px;">R$ {{ stats.valor_total|floatformat:0 }}</div></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Todos os Pedidos EDI</span>
+    <a href="{% url 'ia_recomendacao' %}" class="btn btn-primary btn-sm">+ Novo Pedido via IA</a>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table>
+      <thead>
+        <tr>
+          <th>Nº Pedido</th>
+          <th>Fornecedor</th>
+          <th>Data Criação</th>
+          <th>Previsão Entrega</th>
+          <th>Itens</th>
+          <th>Valor Total</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in pedidos %}
+      <tr>
+        <td><strong>{{ p.numero_pedido }}</strong></td>
+        <td>{{ p.fornecedor.nome|truncatechars:25 }}</td>
+        <td>{{ p.data_criacao|date:"d/m/Y H:i" }}</td>
+        <td>{{ p.data_previsao_entrega|date:"d/m/Y"|default:"—" }}</td>
+        <td>{{ p.itens.count }}</td>
+        <td><strong>R$ {{ p.valor_total|floatformat:2 }}</strong></td>
+        <td><span class="badge status-{{ p.status }}">{{ p.get_status_display }}</span></td>
+        <td><a href="{% url 'detalhe_pedido' p.pk %}" class="btn btn-secondary btn-sm">Ver EDI</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8"><div class="empty-state">Nenhum pedido encontrado.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
