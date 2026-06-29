@@ -44,6 +44,7 @@ venv\Scripts\activate         # Windows
 
 # 3. Instalar dependências
 pip install django pandas openpyxl plotly
+pip install -r requirements.txt
 
 # 4. Garantir que a planilha está no lugar certo
 # O arquivo deve estar em: scm_project/scm/dados_vendas_supermercado_v2.xlsx
